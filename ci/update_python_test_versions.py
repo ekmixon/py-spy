@@ -19,12 +19,8 @@ def get_github_python_versions():
             continue
 
         major, minor, patch = parse_version(version_str)
-        if major == 3 and minor < 5:
+        if major == 3 and minor < 5 or major == 2 and minor < 7:
             # we don't support python 3.0/3.1/3.2 , and don't bother testing 3.3/3.4
-            continue
-
-        elif major == 2 and minor < 7:
-            # we don't test python support before 2.7
             continue
 
         versions.append(version_str)
@@ -41,7 +37,7 @@ if __name__ == "__main__":
     transformed = []
     for line in open(build_yml):
         if line.startswith("        python-version: ["):
-            newversions = f"        python-version: [{', '.join(v for v in versions)}]\n"
+            newversions = f"        python-version: [{', '.join(versions)}]\n"
             if newversions != line:
                 print("Adding new versions")
                 print("Old:", line)

@@ -14,7 +14,7 @@ Frame = namedtuple("Frame", ["file", "name", "line", "col"])
 
 # disable gil checks on windows - just rely on active
 # (doesn't seem to be working quite right - TODO: investigate)
-GIL = ["--gil"] if not sys.platform.startswith("win") else []
+GIL = [] if sys.platform.startswith("win") else ["--gil"]
 PYSPY = find_executable("py-spy")
 
 
@@ -92,7 +92,7 @@ class TestPyspy(unittest.TestCase):
                 ["--threads", "--idle"],
                 include_profile_name=True,
             )
-            expected_thread_names = set("CustomThreadName-" + str(i) for i in range(10))
+            expected_thread_names = {f"CustomThreadName-{str(i)}" for i in range(10)}
             expected_thread_names.add("MainThread")
             name_re = re.compile(r"\"(.*)\"")
             actual_thread_names = {name_re.search(p[0]).groups()[0] for p in profile}

@@ -14,10 +14,11 @@ import tempfile
 
 def build_python(cpython_path, version):
     # TODO: probably easier to use pyenv for this?
-    print("Compiling python %s from repo at %s" % (version, cpython_path))
+    print(f"Compiling python {version} from repo at {cpython_path}")
     install_path = os.path.abspath(os.path.join(cpython_path, version))
 
-    ret = os.system(f"""
+    if ret := os.system(
+        f"""
         cd {cpython_path}
         git checkout {version}
 
@@ -27,8 +28,8 @@ def build_python(cpython_path, version):
         ../configure prefix={install_path}
         make
         make install
-    """)
-    if ret:
+    """
+    ):
         return ret
 
     # also install setuptools_rust/wheel here for building packages
@@ -37,12 +38,14 @@ def build_python(cpython_path, version):
 
 
 def calculate_pyruntime_offsets(cpython_path, version, configure=False):
-    ret = os.system(f"""cd {cpython_path} && git checkout {version}""")
-    if ret:
+    if ret := os.system(f"""cd {cpython_path} && git checkout {version}"""):
         return ret
 
     if configure:
-        os.system(f"cd {cpython_path} && ./configure prefix=" + os.path.abspath(os.path.join(cpython_path, version)))
+        os.system(
+            f"cd {cpython_path} && ./configure prefix={os.path.abspath(os.path.join(cpython_path, version))}"
+        )
+
 
     # simple little c program to get the offsets we need from the pyruntime struct
     # (using rust bindgen here is more complicated than necessary)
@@ -91,21 +94,21 @@ def calculate_pyruntime_offsets(cpython_path, version, configure=False):
             print("Failed to compile""")
             return ret
 
-        ret = os.system(exe)
-        if ret:
+        if ret := os.system(exe):
             print("Failed to run pyruntime file")
             return ret
 
 
 def extract_bindings(cpython_path, version, configure=False):
-    print("Generating bindings for python %s from repo at %s" % (version, cpython_path))
+    print(f"Generating bindings for python {version} from repo at {cpython_path}")
 
-    ret = os.system(f"""
+    ret = os.system(
+        f"""
         cd {cpython_path}
         git checkout {version}
 
         # need to run configure on the current branch to generate pyconfig.h sometimes
-        {("./configure prefix=" + os.path.abspath(os.path.join(cpython_path, version))) if configure else ""}
+        {f"./configure prefix={os.path.abspath(os.path.join(cpython_path, version))}" if configure else ""}
 
         cat Include/Python.h > bindgen_input.h
         cat Include/frameobject.h >> bindgen_input.h
@@ -138,7 +141,9 @@ def extract_bindings(cpython_path, version, configure=False):
             --whitelist-type PyObject \
             --whitelist-type PyTypeObject \
              -- -I . -I ./Include -I ./Include/internal
-    """)
+    """
+    )
+
     if ret:
         return ret
 
@@ -205,6 +210,5 @@ if __name__ == "__main__":
         elif args.pyruntime:
             calculate_pyruntime_offsets(args.cpython, version, configure=args.configure)
 
-        else:
-            if extract_bindings(args.cpython, version, configure=args.configure):
-                print("Failed to generate bindings")
+        elif extract_bindings(args.cpython, version, configure=args.configure):
+            print("Failed to generate bindings")
